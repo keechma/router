@@ -22,6 +22,10 @@
 
   :clean-targets ^{:protect false} ["resources/public/js/compiled" "target"]
 
+  :codox {:language :clojurescript
+          :metadata {:doc/format :markdown}
+          :namespaces [router.core]}
+
   :cljsbuild {:builds
               [{:id "dev"
                 :source-paths ["src"]
