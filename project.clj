@@ -1,20 +1,17 @@
-(defproject keechma/router "0.1.0"
+(defproject keechma/router "0.1.1"
   :description "Router - Pure functional router for ClojureScript applications."
   :url "http://keechma.com/"
   :license {:name "MIT"}
 
   :min-lein-version "2.5.3"
   
-  :dependencies [[org.clojure/clojure "1.7.0"]
-                 [org.clojure/clojurescript "1.7.170"]
-                 [org.clojure/core.async "0.2.374"
-                  :exclusions [org.clojure/tools.reader]]
+  :dependencies [[org.clojure/clojure "1.9.0"]
+                 [org.clojure/clojurescript "1.9.946"]
                  [lein-doo "0.1.6"]
-                 [secretary "1.2.3"]
-                 [funcool/cuerdas "0.7.0"]]
+                 [secretary "1.2.3"]]
   
-  :plugins [[lein-figwheel "0.5.0-6"]
-            [lein-cljsbuild "1.1.2" :exclusions [[org.clojure/clojure]]]
+  :plugins [[lein-figwheel "0.5.8"]
+            [lein-cljsbuild "1.1.7" :exclusions [[org.clojure/clojure]]]
             [lein-doo "0.1.6"]
             [lein-codox "0.9.3"]]
 

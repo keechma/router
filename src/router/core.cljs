@@ -2,7 +2,7 @@
   (:require [clojure.walk :refer [keywordize-keys]]
             [clojure.set :refer [superset? union]]
             [secretary.core :refer [decode-query-params encode-query-params]]
-            [cuerdas.core :as str]))
+            [clojure.string :as str]))
 
 (def ^:private  encode js/encodeURIComponent)
 
