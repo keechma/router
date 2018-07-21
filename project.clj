@@ -1,4 +1,4 @@
-(defproject keechma/router "0.1.1"
+(defproject keechma/router "0.1.2"
   :description "Router - Pure functional router for ClojureScript applications."
   :url "http://keechma.com/"
   :license {:name "MIT"}
