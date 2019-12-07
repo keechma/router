@@ -1,4 +1,4 @@
-(defproject keechma/router "0.1.2"
+(defproject keechma/router "0.1.3"
   :description "Router - Pure functional router for ClojureScript applications."
   :url "http://keechma.com/"
   :license {:name "MIT"}
@@ -7,8 +7,7 @@
   
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [org.clojure/clojurescript "1.9.946"]
-                 [lein-doo "0.1.6"]
-                 [secretary "1.2.3"]]
+                 [lein-doo "0.1.6"]]
   
   :plugins [[lein-figwheel "0.5.8"]
             [lein-cljsbuild "1.1.7" :exclusions [[org.clojure/clojure]]]

@@ -8,32 +8,31 @@
     (is (= matched-path {:route ":foo/bar/:baz" :data {:foo "one" :baz "two"}}))))
 
 (deftest url->map []
-  (do
-    (let [routes (router/expand-routes [[":page" {:page "index"}]])
-          matched-1 (router/url->map routes "foo.Bar")
-          matched-2 (router/url->map routes "")
-          matched-3 (router/url->map routes "foo.Bar?where=there")]
-      (is (= matched-1 {:route ":page"
-                        :data {:page "foo.Bar"}}))
-      (is (= matched-2 {:route ":page"
-                        :data {:page "index"}}))
-      (is (= matched-3 {:route ":page"
-                        :data {:page "foo.Bar"
-                               :where "there"}})))
-
-    (let [routes (router/expand-routes [[":page/:bar" {:page "index" :bar "foo"}]])
-          matched (router/url->map routes "foo.Bar/?where=there")]
-      (is (= matched {:route ":page/:bar"
+  (let [routes (router/expand-routes [[":page" {:page "index"}]])
+        matched-1 (router/url->map routes "foo.Bar")
+        matched-2 (router/url->map routes "")
+        matched-3 (router/url->map routes "foo.Bar?where=there")]
+    (is (= matched-1 {:route ":page"
+                      :data {:page "foo.Bar"}}))
+    (is (= matched-2 {:route ":page"
+                      :data {:page "index"}}))
+    (is (= matched-3 {:route ":page"
                       :data {:page "foo.Bar"
-                             :bar "foo"
                              :where "there"}})))
 
-    (let [routes (router/expand-routes ["/:foo/bar/:baz"])
-          url "/one/bar/two?qux=1&test=success"
-          matched (router/url->map routes url)
-          expected-data {:foo "one" :baz "two" :qux "1" :test "success"}]
-      (is (= matched {:route ":foo/bar/:baz"
-                      :data expected-data})))))
+  (let [routes (router/expand-routes [[":page/:bar" {:page "index" :bar "foo"}]])
+        matched (router/url->map routes "foo.Bar/?where=there")]
+    (is (= matched {:route ":page/:bar"
+                    :data {:page "foo.Bar"
+                           :bar "foo"
+                           :where "there"}})))
+
+  (let [routes (router/expand-routes ["/:foo/bar/:baz"])
+        url "/one/bar/two?qux=1&test=success"
+        matched (router/url->map routes url)
+        expected-data {:foo "one" :baz "two" :qux "1" :test "success"}]
+    (is (= matched {:route ":foo/bar/:baz"
+                    :data expected-data}))))
 
 (deftest url->map-invalid []
   (let [routes (router/expand-routes [["pages/:var1/:var2/:var3"
@@ -55,18 +54,17 @@
     (is (= matched-url {:data {:foo "bar" :baz "qux"}}))))
 
 (deftest map->url []
-  (do
-    (let [routes (router/expand-routes [["pages/:page" {:page "index"}]])
-          url-1 (router/map->url routes {:page "foo"})
-          url-2 (router/map->url routes {:page "foo" :index "bar"})]
-      (is (= url-1 "pages/foo"))
-      (is (= url-2 "pages/foo?index=bar")))
-    (let [routes (router/expand-routes [["pages/:page" {:page "index"}]
-                                        ["pages/:page/:foo" {:page "index" :foo "bar"}]])
-          url (router/map->url routes {:page "foo" :foo "bar" :where "there"})]
-      (is (= url "pages/foo/?where=there")))
-    (let [url (router/map->url nil {:page "foo" :bar "baz" :where "there"})]
-      (is (= url "?page=foo&bar=baz&where=there")))))
+  (let [routes (router/expand-routes [["pages/:page" {:page "index"}]])
+        url-1 (router/map->url routes {:page "foo"})
+        url-2 (router/map->url routes {:page "foo" :index "bar"})]
+    (is (= url-1 "pages/foo"))
+    (is (= url-2 "pages/foo?index=bar")))
+  (let [routes (router/expand-routes [["pages/:page" {:page "index"}]
+                                      ["pages/:page/:foo" {:page "index" :foo "bar"}]])
+        url (router/map->url routes {:page "foo" :foo "bar" :where "there"})]
+    (is (= url "pages/foo/?where=there")))
+  (let [url (router/map->url nil {:page "foo" :bar "baz" :where "there"})]
+    (is (= url "?page=foo&bar=baz&where=there"))))
 
 (deftest symmetry []
   (let [data {:page "=&[]" :nestedArray ["a"] :nested {:a "b"}}
@@ -76,15 +74,14 @@
 
 
 (deftest light-param []
-  (do 
-    (let [routes (router/expand-routes [[":page", {:page "index"}]])
-          res (router/map->url routes {:page "index"})]
-      (is (= res "")))
-    (let [routes (router/expand-routes [["pages/:p1/:p2/:p3" {:p1 "index" :p2 "foo" :p3 "bar"}]])
-          res-1 (router/map->url routes {:p1 "index" :p2 "foo" :p3 "bar"})
-          res-2 (router/map->url routes {:p1 "index" :p2 "baz" :p3 "bar"})]
-      (is (= res-1 "pages///"))
-      (is (= res-2 "pages//baz/")))))
+  (let [routes (router/expand-routes [[":page", {:page "index"}]])
+        res (router/map->url routes {:page "index"})]
+    (is (= res "")))
+  (let [routes (router/expand-routes [["pages/:p1/:p2/:p3" {:p1 "index" :p2 "foo" :p3 "bar"}]])
+        res-1 (router/map->url routes {:p1 "index" :p2 "foo" :p3 "bar"})
+        res-2 (router/map->url routes {:p1 "index" :p2 "baz" :p3 "bar"})]
+    (is (= res-1 "pages///"))
+    (is (= res-2 "pages//baz/"))))
 
 (deftest map->url-does-not-add-defaults []
   (let [routes (router/expand-routes [["pages/:p1", {:p2 "foo"}]])]
@@ -115,20 +112,52 @@
     (is (= {:foo 1 :bar 2} (:data data)))))
 
 (deftest precedence []
-  (do 
-    (let [routes (router/expand-routes [[":who", {:who "index"}]
-                                        "search/:search"])
-          data-1 (router/url->map routes "foo.Bar")
-          data-2 (router/url->map routes "search/foo.Bar")
-          url-1 (router/map->url routes {:who "foo.Bar"})
-          url-2 (router/map->url routes {:search "foo.Bar"})]
-      (is (= (:data data-1) {:who "foo.Bar"}))
-      (is (= (:data data-2) {:search "foo.Bar"}))
-      (is (= url-1 "foo.Bar"))
-      (is (= url-2 "search/foo.Bar")))
-    (let [routes (router/expand-routes [[":type" , {:who "index"}]
-                                        ":type/:id"])
-           data (router/url->map routes "foo/bar")
-           url (router/map->url routes {:type "foo" :id "bar"})]
-      (is (= (:data data) {:type "foo" :id "bar"}))
-      (is (= url "foo/bar")))))
+  (let [routes (router/expand-routes [[":who", {:who "index"}]
+                                      "search/:search"])
+        data-1 (router/url->map routes "foo.Bar")
+        data-2 (router/url->map routes "search/foo.Bar")
+        url-1 (router/map->url routes {:who "foo.Bar"})
+        url-2 (router/map->url routes {:search "foo.Bar"})]
+    (is (= (:data data-1) {:who "foo.Bar"}))
+    (is (= (:data data-2) {:search "foo.Bar"}))
+    (is (= url-1 "foo.Bar"))
+    (is (= url-2 "search/foo.Bar")))
+  (let [routes (router/expand-routes [[":type" , {:who "index"}]
+                                      ":type/:id"])
+        data (router/url->map routes "foo/bar")
+        url (router/map->url routes {:type "foo" :id "bar"})]
+    (is (= (:data data) {:type "foo" :id "bar"}))
+    (is (= url "foo/bar"))))
+
+(deftest namespaced-keys
+  (let [routes (router/expand-routes [["" {:page "homepage"}]
+                                      ":page"
+                                      ["blog" {:page "blog-index" :blog-posts/page 1}]
+                                      ["blog/p/:blog-posts$page" {:page "blog-index"}]
+                                      ["blog/:blog-post$slug" {:page "blog-post"}]
+                                      ["users/list" {:page "users"}]
+                                      ["users/:user$id" {:page "user-details"}]
+                                      ["users/:user$id/:user$page"]])]
+    (is (= "" (router/map->url routes {:page "homepage"})))
+    (is (= "foo" (router/map->url routes {:page "foo"})))
+    (is (= "users/list" (router/map->url routes {:page "users"})))
+    (is (= "users/1" (router/map->url routes {:user/id 1})))
+    (is (= "users/1/details" (router/map->url routes {:user/id 1 :user/page "details"})))
+    (is (= "?foo$bar=1&foo.bar$baz=2&foo.bar.baz$qux[qux$foo]=bar&foo.bar.baz.qux$foo[bar.baz$qux]=foo"
+           (router/map->url routes {:foo/bar 1
+                                    :foo.bar/baz 2
+                                    :foo.bar.baz/qux {:qux/foo "bar"}
+                                    :foo.bar.baz.qux/foo {:bar.baz/qux "foo"}})))
+
+    (is (= {:page "homepage"} (:data (router/url->map routes ""))))
+    (is (= {:page "homepage"} (:data (router/url->map routes "homepage"))))
+    (is (= {:page "foo"} (:data (router/url->map routes "foo"))))
+    (is (= {:page "users"} (:data (router/url->map routes "users/list"))))
+    (is (= {:page "user-details" :user/id "1"} (:data (router/url->map routes "users/1"))))
+    (is (= {:user/id "1" :user/page "details"} (:data (router/url->map routes "users/1/details"))))
+    (is (= {:foo/bar "1"
+            :foo.bar/baz "2"
+            :foo.bar.baz/qux {:qux/foo "bar"}
+            :foo.bar.baz.qux/foo {:bar.baz/qux "foo"}
+            :page "homepage"}
+           (:data (router/url->map routes "?foo$bar=1&foo.bar$baz=2&foo.bar.baz$qux[qux$foo]=bar&foo.bar.baz.qux$foo[bar.baz$qux]=foo"))))))
