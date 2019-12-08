@@ -161,3 +161,12 @@
             :foo.bar.baz.qux/foo {:bar.baz/qux "foo"}
             :page "homepage"}
            (:data (router/url->map routes "?foo$bar=1&foo.bar$baz=2&foo.bar.baz$qux[qux$foo]=bar&foo.bar.baz.qux$foo[bar.baz$qux]=foo"))))))
+
+
+(deftest catch-all-route
+  (let [routes (router/expand-routes [["" {:page "homepage"}]
+                                      ":page"
+                                      [:* {:page "not-found"}]])]
+    (is (= {:page "homepage"} (:data (router/url->map routes ""))))
+    (is (= {:page "foo"} (:data (router/url->map routes "foo"))))
+    (is (= {:page "not-found"} (:data (router/url->map routes "foo/bar/baz"))))))

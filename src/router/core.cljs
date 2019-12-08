@@ -52,7 +52,7 @@
      :re-match re-match}))
 
 (defn ^:private route-regex [parts]
-  (let [base-regex (clojure.string/join "/" (map (fn [p] (:re-match p)) parts))
+  (let [base-regex (str/join "/" (map (fn [p] (:re-match p)) parts))
         full-regex (str "^" base-regex "$")]
     (re-pattern full-regex)))
 
@@ -62,25 +62,34 @@
        (remove nil?)))
 
 (defn ^:private add-default-params [route]
-  (if (string? route) [route {}] route))
+  (if (vector? route) route [route {}]))
 
 (defn ^:private strip-slashes
   ([route]
-   (clojure.string/replace (clojure.string/trim (or route "")) #"^/+|/+$" ""))
+   (str/replace (str/trim (str route)) #"^/+|/+$" ""))
   ([side route]
    (case side
-     :left (clojure.string/replace (clojure.string/trim (or route "")) #"^/+" "")
-     :right (clojure.string/replace (clojure.string/trim (or route "")) #"/+$" "")
+     :left (str/replace (str/trim (or route "")) #"^/+" "")
+     :right (str/replace (str/trim (or route "")) #"/+$" "")
      route)))
 
 (defn ^:private process-route [[route defaults]]
-  (let [parts (clojure.string/split route #"/")
-        processed-parts (map (partial process-route-part (set (keys defaults))) parts)]
-    {:parts processed-parts 
-     :regex (route-regex processed-parts)
-     :placeholders (set (route-placeholders processed-parts))
+  (if (= :* route)
+    {:parts []
+     :regex #".*"
+     :placeholders #{}
      :route route
-     :defaults (or defaults {})}))
+     :defaults (or defaults {})
+     :type ::catch-all}
+    (let [parts (str/split route #"/")
+          processed-parts (map (partial process-route-part (set (keys defaults))) parts)
+          placeholders  (set (route-placeholders processed-parts))]
+      {:parts processed-parts 
+       :regex (route-regex processed-parts)
+       :placeholders placeholders
+       :route route
+       :defaults (or defaults {})
+       :type (if (empty? placeholders) ::exact ::pattern)})))
 
 (defn ^:private remove-empty-matches [matches]
   (->> matches
@@ -92,7 +101,7 @@
       (into {})))
 
 (defn ^:private expand-route [route]
-  (let [strip-slashes (fn [[route defaults]] [(strip-slashes route) defaults])]
+  (let [strip-slashes (fn [[route defaults]] [(if (string? route) (strip-slashes route) route) defaults])]
     (-> route
         add-default-params
         strip-slashes
@@ -146,20 +155,14 @@
     (when-not (nil? matches)
       (zipmap (:placeholders route) (rest matches)))))
 
-(defn ^:private match-path [expanded-routes path]
-  (let [route-count (count expanded-routes)
-        max-index (dec route-count)]
-    (when (pos? route-count)
-      (loop [index 0] 
-        (let [route (get expanded-routes index)
-              matches (match-path-with-route route path) 
-              end? (= max-index index)]
-          (cond
-           matches {:route (:route route)
-                    :data (merge (:defaults route)
-                                 (remove-empty-matches matches))}
-           end? nil
-           :else (recur (inc index))))))))
+(defn ^:private match-path [expanded-routes path] 
+  (reduce 
+   (fn [result route]
+     (when-let [matches (match-path-with-route route path)]
+       (reduced {:route (:route route)
+                 :data  (merge (:defaults route) (remove-empty-matches matches))}))) 
+   nil 
+   expanded-routes))
 
 ;; Public API
 
@@ -187,7 +190,7 @@
   ```
   "
   [expanded-routes url]
-  (let [[u q] (clojure.string/split url #"\?")
+  (let [[u q] (str/split url #"\?")
         path (if (= u "/") u (strip-slashes :left u)) 
         query (remove-empty-matches (keywordize-url-keys (decode-query-params q)))
         matched-path (match-path expanded-routes path)]
@@ -248,7 +251,9 @@
   ```
   "
   [routes]
-  (let [expanded-routes (map expand-route routes)
+  (let [expanded-routes (group-by :type (map expand-route routes))
+   
+
         without-placeholders (filter #(not (seq (:placeholders %))) expanded-routes)
         with-placeholders (filter #(seq (:placeholders %)) expanded-routes)]
     ;; We put routes without placeholders at the start of the list, so they would
@@ -256,4 +261,8 @@
     ;;
     ;; Routes that have placeholders are sorted so that the routes with the most 
     ;; placeholders come first, because these have more specificity
-    (vec (concat without-placeholders (sort-by #(- (count (:placeholders %))) with-placeholders)))))
+    ;;
+    ;; At the end of the list we put the catch-all route (if any exist)
+    (vec (concat (expanded-routes ::exact)
+                 (sort-by #(- (count (:placeholders %))) (expanded-routes ::pattern))
+                 (expanded-routes ::catch-all)))))
