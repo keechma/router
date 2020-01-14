@@ -170,3 +170,7 @@
     (is (= {:page "homepage"} (:data (router/url->map routes ""))))
     (is (= {:page "foo"} (:data (router/url->map routes "foo"))))
     (is (= {:page "not-found"} (:data (router/url->map routes "foo/bar/baz"))))))
+
+(deftest trailing-slash
+  (let [routes (router/expand-routes [":page"])]
+    (is (= {:page "homepage"} (:data (router/url->map routes "homepage/"))))))

@@ -93,12 +93,12 @@
 
 (defn ^:private remove-empty-matches [matches]
   (->> matches
-      (filter (fn [[k v]]
-                (and (not (nil? v))
-                     (not (nil? k))
-                     (not (empty? v))
-                     (not= "null" v))))
-      (into {})))
+       (filter (fn [[k v]]
+                 (and (not (nil? v))
+                      (not (nil? k))
+                      (not (empty? v))
+                      (not= "null" v))))
+       (into {})))
 
 (defn ^:private expand-route [route]
   (let [strip-slashes (fn [[route defaults]] [(if (string? route) (strip-slashes route) route) defaults])]
@@ -196,7 +196,13 @@
         matched-path (match-path expanded-routes path)]
     (if matched-path
       (assoc matched-path :data (merge query (:data matched-path)))
-      {:data query})))
+      (if (and (not matched-path) (str/ends-with? path "/"))
+        (let [path' (if (= u "/") u (strip-slashes :right u))
+              matched-path' (match-path expanded-routes path')]
+          (if matched-path'
+            (assoc matched-path' :data (merge query (:data matched-path')))
+            {:data query}))
+        {:data query}))))
 
 (defn map->url 
   "Accepts `expanded-routes` vector (returned by the `expand-routes` function)
@@ -251,11 +257,7 @@
   ```
   "
   [routes]
-  (let [expanded-routes (group-by :type (map expand-route routes))
-   
-
-        without-placeholders (filter #(not (seq (:placeholders %))) expanded-routes)
-        with-placeholders (filter #(seq (:placeholders %)) expanded-routes)]
+  (let [expanded-routes (group-by :type (map expand-route routes))]
     ;; We put routes without placeholders at the start of the list, so they would
     ;; be matched first - exact matches have precedence over matches with placeholders
     ;;
