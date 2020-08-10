@@ -1,4 +1,4 @@
-(ns router.test.router
+(ns router.router-test
   (:require [cljs.test :refer-macros [deftest is]] 
             [router.core :as router]))
 

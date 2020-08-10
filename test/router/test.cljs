@@ -1,6 +1,8 @@
-(ns router.test.test
+(ns router.test
   (:require [doo.runner :refer-macros [doo-tests]]
-            [cljs.test :as test]
-            [router.test.router]))
+            [router.router-test]
+            [router.v2.router-test]))
 
-(doo-tests 'router.test.router)
+(doo-tests
+  'router.router-test
+  'router.v2.router-test)

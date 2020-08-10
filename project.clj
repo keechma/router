@@ -1,4 +1,4 @@
-(defproject keechma/router "0.1.5"
+(defproject keechma/router "1.0.0"
   :description "Router - Pure functional router for ClojureScript applications."
   :url "http://keechma.com/"
   :license {:name "MIT"}
@@ -48,7 +48,7 @@
                 :compiler {:output-to 
                            "resources/public/js/compiled/test.js"
                            :optimizations :none
-                           :main router.test.test}}]}
+                           :main router.test}}]}
 
   :figwheel {;; :http-server-root "public" ;; default and assumes "resources"
              ;; :server-port 3449 ;; default
