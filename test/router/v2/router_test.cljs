@@ -44,11 +44,11 @@
                     :data expected-data})))
   (let [routes (router/expand-routes [":page"])]
     (is (= (router/url->map routes "Hello%20World")
-          {:route ":page"
-           :data {:page "Hello World"}})))
+           {:route ":page"
+            :data {:page "Hello World"}})))
   (let [routes (router/expand-routes [":folder/:file.:ext"])]
     (is (= {:route ":folder/:file.:ext" :data {:folder "desktop" :file "image", :ext "jpg"}}
-          (router/url->map routes "desktop/image.jpg")))))
+           (router/url->map routes "desktop/image.jpg")))))
 
 (deftest url->map-invalid []
   (let [routes (router/expand-routes [["pages/:var1/:var2/:var3"
@@ -103,8 +103,7 @@
     (is (= (router/map->url routes {:p1 "index" :p2 "foo"}) "pages/index"))))
 
 (deftest map->url-url->map []
-  (let [routes (router/expand-routes [
-                                      [":page/:type", {:page "index", :type "foo"}]])
+  (let [routes (router/expand-routes [[":page/:type", {:page "index", :type "foo"}]])
         data {:page "foo.Bar" :type "document" :bar "baz" :where "there"}
         url (router/map->url routes data)
         url-data (router/url->map routes url)
@@ -153,17 +152,24 @@
                                       ["blog/{:blog-post/slug}" {:page "blog-post"}]
                                       ["users/list" {:page "users"}]
                                       ["users/{:user/id}" {:page "user-details"}]
-                                      ["users/{:user/id}/{:user/page}"]])]
+                                      ["users/{:user/id}/{:user/page}"]
+                                      ["users-filter/{:user.filter/id}/{:user.filter/page}"]])]
     (is (= "" (router/map->url routes {:page "homepage"})))
     (is (= "foo" (router/map->url routes {:page "foo"})))
     (is (= "users/list" (router/map->url routes {:page "users"})))
     (is (= "users/1" (router/map->url routes {:user/id 1})))
     (is (= "users/1/details" (router/map->url routes {:user/id 1 :user/page "details"})))
+    (is (= "users/1/details?user/flags[]=foo&user/flags[]=bar"
+           (->> {:user/id "1" :user/page "details" :user/flags ["foo" "bar"]}
+                (router/map->url routes))))
+    (is (= "users-filter/1/details?user.filter/flags[]=foo&user.filter/flags[]=bar"
+           (->> {:user.filter/id "1" :user.filter/page "details" :user.filter/flags ["foo" "bar"]}
+                (router/map->url routes))))
     (is (= "?foo/bar=1&foo.bar/baz=2&foo.bar.baz/qux[qux/foo]=bar&foo.bar.baz.qux/foo[bar.baz/qux]=foo"
-          (router/map->url routes {:foo/bar 1
-                                   :foo.bar/baz 2
-                                   :foo.bar.baz/qux {:qux/foo "bar"}
-                                   :foo.bar.baz.qux/foo {:bar.baz/qux "foo"}})))
+           (router/map->url routes {:foo/bar 1
+                                    :foo.bar/baz 2
+                                    :foo.bar.baz/qux {:qux/foo "bar"}
+                                    :foo.bar.baz.qux/foo {:bar.baz/qux "foo"}})))
 
     (is (= {:page "homepage"} (:data (router/url->map routes ""))))
     (is (= {:page "homepage"} (:data (router/url->map routes "homepage"))))
@@ -171,12 +177,20 @@
     (is (= {:page "users"} (:data (router/url->map routes "users/list"))))
     (is (= {:page "user-details" :user/id "1"} (:data (router/url->map routes "users/1"))))
     (is (= {:user/id "1" :user/page "details"} (:data (router/url->map routes "users/1/details"))))
+    (is (= {:user/id "1" :user/page "details" :user/flags ["foo" "bar"]}
+           (->> "users/1/details?user/flags[]=foo&user/flags[]=bar"
+                (router/url->map routes)
+                :data)))
+    (is (= {:user.filter/id "1" :user.filter/page "details" :user.filter/flags ["foo" "bar"]}
+           (->> "users-filter/1/details?user.filter/flags[]=foo&user.filter/flags[]=bar"
+                (router/url->map routes)
+                :data)))
     (is (= {:foo/bar "1"
             :foo.bar/baz "2"
             :foo.bar.baz/qux {:qux/foo "bar"}
             :foo.bar.baz.qux/foo {:bar.baz/qux "foo"}
             :page "homepage"}
-          (:data (router/url->map routes "?foo/bar=1&foo.bar/baz=2&foo.bar.baz/qux[qux/foo]=bar&foo.bar.baz.qux/foo[bar.baz/qux]=foo"))))))
+           (:data (router/url->map routes "?foo/bar=1&foo.bar/baz=2&foo.bar.baz/qux[qux/foo]=bar&foo.bar.baz.qux/foo[bar.baz/qux]=foo"))))))
 
 (deftest splat-routes
   (let [routes (router/expand-routes [["" {:page "homepage"}]
@@ -202,12 +216,14 @@
     (let [params {:id "kevin" :food "bacon"}
           encoded (encode-query-params params)]
       (is (= (decode-query-params encoded)
-            params)))
+             params)))
 
     (are [x y] (= (encode-query-params x) y)
-               {:x [1 2]} "x[]=1&x[]=2"
-               {:a [{:b 1} {:b 2}]} "a[0][b]=1&a[1][b]=2"
-               {:a [{:b [1 2]} {:b [3 4]}]} "a[0][b][]=1&a[0][b][]=2&a[1][b][]=3&a[1][b][]=4"))
+      {:x [1 2]} "x[]=1&x[]=2"
+      {:foo/bar 1} "foo/bar=1"
+      {:foo.bar/baz 1} "foo.bar/baz=1"
+      {:a [{:b 1} {:b 2}]} "a[0][b]=1&a[1][b]=2"
+      {:a [{:b [1 2]} {:b [3 4]}]} "a[0][b][]=1&a[0][b][]=2&a[1][b][]=3&a[1][b][]=4"))
 
   (testing "decodes query params"
     (let [query-string "id=kevin&food=bacong"
@@ -217,9 +233,11 @@
       (is (re-find #"food=bacon" query-string)))
 
     (are [x y] (= (decode-query-params x) y)
-               "x[]=1&x[]=2" {:x ["1" "2"]}
-               "a[0][b]=1&a[1][b]=2" {:a [{:b "1"} {:b "2"}]}
-               "a[0][b][]=1&a[0][b][]=2&a[1][b][]=?3&a[1][b][]=4" {:a [{:b ["1" "2"]} {:b ["?3" "4"]}]})))
+      "foo/bar=1" {:foo/bar "1"}
+      "foo.bar/baz=1" {:foo.bar/baz "1"}
+      "x[]=1&x[]=2" {:x ["1" "2"]}
+      "a[0][b]=1&a[1][b]=2" {:a [{:b "1"} {:b "2"}]}
+      "a[0][b][]=1&a[0][b][]=2&a[1][b][]=?3&a[1][b][]=4" {:a [{:b ["1" "2"]} {:b ["?3" "4"]}]})))
 
 (defn mean [coll]
   (let [sum (apply + coll)
@@ -246,8 +264,8 @@
                     (* x-avg x-avg)))
         total (count coll)]
     (-> (/ (apply + squares)
-          (- total 1))
-      (Math/sqrt))))
+           (- total 1))
+        (Math/sqrt))))
 
 #_(deftest performance
     (let [routes (router/expand-routes [["" {:page "homepage"}]
@@ -259,14 +277,14 @@
                                         ["users/{:user/id}" {:user/page "user-details"}]
                                         ["users/{:user/id}/{:user/page}"]])
           measurements
-                 (map
-                   (fn [_]
-                     (let [t (js/performance.now)]
-                       (doseq [i (range 0 10000)]
-                         (let [user-page (if (even? i) "user-details" "feed")]
-                           (router/map->url routes {:user/id i :user/page user-page})))
-                       (- (js/performance.now) t)))
-                   (range 0 10))]
+          (map
+           (fn [_]
+             (let [t (js/performance.now)]
+               (doseq [i (range 0 10000)]
+                 (let [user-page (if (even? i) "user-details" "feed")]
+                   (router/map->url routes {:user/id i :user/page user-page})))
+               (- (js/performance.now) t)))
+           (range 0 10))]
       (println "Mean:" (mean measurements) "High:" (last (sort measurements)) "Low:" (first (sort measurements)))
       (println "Median:" (median measurements))
       (println "SD:" (standard-deviation measurements))))

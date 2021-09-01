@@ -4,14 +4,14 @@
   :license {:name "MIT"}
 
   :min-lein-version "2.5.3"
-  
-  :dependencies [[org.clojure/clojure "1.9.0"]
-                 [org.clojure/clojurescript "1.9.946"]
-                 [lein-doo "0.1.6"]]
-  
+
+  :dependencies [[org.clojure/clojure "1.10.3"]
+                 [org.clojure/clojurescript "1.10.879"]
+                 [lein-doo "0.1.11"]]
+
   :plugins [[lein-figwheel "0.5.8"]
             [lein-cljsbuild "1.1.7" :exclusions [[org.clojure/clojure]]]
-            [lein-doo "0.1.6"]
+            [lein-doo "0.1.11"]
             [lein-codox "0.9.3"]]
 
   :source-paths ["src"]
@@ -45,7 +45,7 @@
                            :pretty-print false}}
                {:id "test"
                 :source-paths ["src" "test"]
-                :compiler {:output-to 
+                :compiler {:output-to
                            "resources/public/js/compiled/test.js"
                            :optimizations :none
                            :main router.test}}]}

@@ -12,15 +12,15 @@
   encode-pair
   (fn [[k v]]
     (cond
-     (or (sequential? v) (set? v))
-     ::sequential
-     (or (map? v) (satisfies? IRecord v))
-     ::map)))
+      (or (sequential? v) (set? v))
+      ::sequential
+      (or (map? v) (satisfies? IRecord v))
+      ::map)))
 
 (defn- key-index
   ([k] (str (name k) "[]"))
   ([k index]
-     (str (name k) "[" index "]")))
+   (str (name k) "[" index "]")))
 
 (defmethod encode-pair ::sequential [[k v]]
   (let [encoded (map-indexed
@@ -69,9 +69,9 @@
     (map
      (fn [[_ part]]
        (cond
-        (empty? part) 0
-        (re-matches #"\d+" part) (js/parseInt part)
-        :else part))
+         (empty? part) 0
+         (re-matches #"\d+" part) (js/parseInt part)
+         :else part))
      parts)))
 
 (defn- key-parse
@@ -103,7 +103,7 @@
         hs (heads path)
         m (reduce
            (fn [m h]
-             (if (and (or (number? (last h)))
+             (if (and (number? (last h))
                       (not (vector? (get-in m (butlast h)))))
                (assoc-in m (butlast h) [])
                m))

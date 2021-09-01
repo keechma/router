@@ -1,6 +1,6 @@
 (ns router.core
   (:require [clojure.walk :refer [postwalk]]
-            [clojure.set :refer [superset? union]]
+            [clojure.set :refer [superset?]]
             [router.util :refer [decode-query-params encode-query-params]]
             [clojure.string :as str]))
 
@@ -18,22 +18,21 @@
 
 (defn ^:private keywordize-url-keys
   [m]
-  (let [f (fn [[k v]] 
-            (if (string? k) 
-              [(keyword (process-url-namespace k)) v] 
+  (let [f (fn [[k v]]
+            (if (string? k)
+              [(keyword (process-url-namespace k)) v]
               [k v]))]
     ;; only apply to maps
     (postwalk (fn [x] (if (map? x) (into {} (map f x)) x)) m)))
 
 (defn ^:private preserve-ns-url-keys
   [m]
-  (let [f (fn [[k v]] 
+  (let [f (fn [[k v]]
             (if (keyword? k)
               [(preserve-ns-url-key k) v]
               [k v]))]
     ;; only apply to maps
     (postwalk (fn [x] (if (map? x) (into {} (map f x)) x)) m)))
-
 
 (defn ^:private placeholder->key [p]
   (-> (subs p 1)
@@ -84,7 +83,7 @@
     (let [parts (str/split route #"/")
           processed-parts (map (partial process-route-part (set (keys defaults))) parts)
           placeholders  (set (route-placeholders processed-parts))]
-      {:parts processed-parts 
+      {:parts processed-parts
        :regex (route-regex processed-parts)
        :placeholders placeholders
        :route route
@@ -96,7 +95,7 @@
        (filter (fn [[k v]]
                  (and (not (nil? v))
                       (not (nil? k))
-                      (not (empty? v))
+                      (seq v)
                       (not= "null" v))))
        (into {})))
 
@@ -107,10 +106,10 @@
         strip-slashes
         process-route)))
 
-(defn ^:private potential-route? [data {:keys [placeholders defaults] :as route}]
-  (or (and (not (empty? placeholders))
+(defn ^:private potential-route? [data {:keys [placeholders defaults]}]
+  (or (and (seq placeholders)
            (superset? (set (keys data)) placeholders))
-      (and (not (empty? defaults))
+      (and (seq defaults)
            (superset? (set defaults) (set data)))))
 
 (defn ^:private intersect-maps [map1 map2]
@@ -121,7 +120,7 @@
 
 (defn ^:private extract-query-param [default-keys placeholders m k v]
   (if-not (or (contains? default-keys k) (contains? placeholders k))
-    (assoc m k v) 
+    (assoc m k v)
     m))
 
 (defn ^:private add-url-segment [defaults data url k]
@@ -141,27 +140,28 @@
       (if (= "/" base-url) "" base-url)
       (str base-url "?" (encode-query-params (preserve-ns-url-keys query-params))))))
 
-(defn ^:private route-score [data {:keys [defaults placeholders]}] 
-  (reduce-kv 
+(defn ^:private route-score [data {:keys [defaults placeholders]}]
+  (reduce-kv
    (fn [score k v]
      (cond
        (= v (get defaults k)) (+ score 1.1)
        (contains? placeholders k) (inc score)
-       :else score)) 
-   0 data))
+       :else score))
+   0
+   data))
 
 (defn ^:private match-path-with-route [route url]
   (let [matches (first (re-seq (:regex route) url))]
     (when-not (nil? matches)
       (zipmap (:placeholders route) (rest matches)))))
 
-(defn ^:private match-path [expanded-routes path] 
-  (reduce 
-   (fn [result route]
+(defn match-path [expanded-routes path]
+  (reduce
+   (fn [_ route]
      (when-let [matches (match-path-with-route route path)]
        (reduced {:route (:route route)
-                 :data  (merge (:defaults route) (remove-empty-matches matches))}))) 
-   nil 
+                 :data  (merge (:defaults route) (remove-empty-matches matches))})))
+   nil
    expanded-routes))
 
 ;; Public API
@@ -191,7 +191,7 @@
   "
   [expanded-routes url]
   (let [[u q] (str/split url #"\?")
-        path (if (= u "/") u (strip-slashes :left u)) 
+        path (if (= u "/") u (strip-slashes :left u))
         query (remove-empty-matches (keywordize-url-keys (decode-query-params q)))
         matched-path (match-path expanded-routes path)]
     (if matched-path
@@ -204,7 +204,7 @@
             {:data query}))
         {:data query}))))
 
-(defn map->url 
+(defn map->url
   "Accepts `expanded-routes` vector (returned by the `expand-routes` function)
   and a map as arguments. Returns a URL part which is the closest representatation
   of the data contained in the map (based on the `expanded-routes` argument).

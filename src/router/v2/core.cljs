@@ -1,12 +1,11 @@
 (ns router.v2.core
-  (:require [clojure.walk :refer [postwalk]]
-            [clojure.set :refer [superset? union intersection]]
+  (:require [clojure.set :refer [union]]
             [router.v2.util :refer [decode-query-params encode-query-params]]
             [clojure.string :as str]))
 
 (defn ^:private placeholder->key [p]
   (-> (subs p 1)
-    keyword))
+      keyword))
 
 (defn ^:private process-route-part [default-keys part]
   (case part
@@ -35,17 +34,17 @@
 
 (defn ^:private route-placeholders [parts]
   (->> parts
-    (map :key)
-    (remove nil?)))
+       (map :key)
+       (remove nil?)))
 
 (defn route-splats [parts]
   (->> parts
-    (filter #(:is-splat %))
-    route-placeholders))
+       (filter #(:is-splat %))
+       route-placeholders))
 
 (defn route-statics [parts]
   (->> parts
-    (filter #(:is-static %))))
+       (filter #(:is-static %))))
 
 (defn ^:private add-default-params [route]
   (if (vector? route) route [route {}]))
@@ -69,7 +68,7 @@
           (contains? #{"." "{" "/" ":"} c)
           {:part (str/join part) :rest-route route}
 
-          (or (= "}" c))
+          (= "}" c)
           (throw (ex-info "Mismatched braces" {:route r}))
 
           (= "*" (last part))
@@ -134,7 +133,7 @@
 
 (defn throw-if-duplicate-placeholders [route placeholders]
   (let [placeholder-freqs (frequencies placeholders)
-        duplicates (map first (filter (fn [[k v]] (< 1 v)) placeholder-freqs))]
+        duplicates (map first (filter (fn [[_ v]] (< 1 v)) placeholder-freqs))]
     (when (seq duplicates)
       (throw (ex-info "Duplicate placeholders" {:route route :duplicates duplicates})))))
 
@@ -160,39 +159,39 @@
              (seq placeholders) ::pattern
              :else ::exact)
      :specificity (+ (- placeholder-count splat-count)
-                    (* 10 (count statics))
-                    (* 1.001 (count defaults))
-                    (* 0.01 splat-count))}))
+                     (* 10 (count statics))
+                     (* 1.001 (count defaults))
+                     (* 0.01 splat-count))}))
 
 (defn ^:private remove-empty-matches [matches]
   (->> matches
-    (filter (fn [[k v]]
-              (and (not (nil? v))
-                (not (nil? k))
-                (not (empty? v))
-                (not= "null" v))))
-    (into {})))
+       (filter (fn [[k v]]
+                 (and (not (nil? v))
+                      (not (nil? k))
+                      (seq v)
+                      (not= "null" v))))
+       (into {})))
 
 (defn ^:private expand-route [route]
   (let [strip-slashes (fn [[route defaults]] [(if (string? route) (strip-slashes route) route) defaults])]
     (-> route
-      add-default-params
-      strip-slashes
-      process-route)))
+        add-default-params
+        strip-slashes
+        process-route)))
 
 (defn ^:private match-path-with-route [route url]
   (let [matches (first (re-seq (:regex route) url))]
     (when-not (nil? matches)
       (zipmap (:placeholders route) (map js/decodeURIComponent (rest matches))))))
 
-(defn ^:private match-path [expanded-routes path]
+(defn match-path [expanded-routes path]
   (reduce
-    (fn [_ route]
-      (when-let [matches (match-path-with-route route path)]
-        (reduced {:route (:route route)
-                  :data (merge (:defaults route) (remove-empty-matches matches))})))
-    nil
-    expanded-routes))
+   (fn [_ route]
+     (when-let [matches (match-path-with-route route path)]
+       (reduced {:route (:route route)
+                 :data (merge (:defaults route) (remove-empty-matches matches))})))
+   nil
+   expanded-routes))
 
 (defn ^:private get-url-segment [state k is-splat]
   (let [defaults (:defaults state)
@@ -204,26 +203,26 @@
 
 (defn dissoc-defaults [data defaults]
   (reduce-kv
-    (fn [acc k v]
-      (if-not (seq acc)
-        (reduced nil)
-        (if (= (get acc k) v)
-          (dissoc acc k)
-          acc)))
-    data
-    defaults))
+   (fn [acc k v]
+     (if-not (seq acc)
+       (reduced nil)
+       (if (= (get acc k) v)
+         (dissoc acc k)
+         acc)))
+   data
+   defaults))
 
 (defn build-url-parts [data {:keys [defaults parts]}]
   (let [{:keys [data defaults url]}
         (reduce
-          (fn [acc part]
-            (if-let [key (:key part)]
-              {:data (dissoc (:data acc) key)
-               :defaults (dissoc (:defaults acc) key)
-               :url (conj (:url acc) (get-url-segment acc key (:is-splat part)))}
-              (assoc acc :url (conj (:url acc) (:part part)))))
-          {:data data :defaults defaults :url []}
-          parts)]
+         (fn [acc part]
+           (if-let [key (:key part)]
+             {:data (dissoc (:data acc) key)
+              :defaults (dissoc (:defaults acc) key)
+              :url (conj (:url acc) (get-url-segment acc key (:is-splat part)))}
+             (assoc acc :url (conj (:url acc) (:part part)))))
+         {:data data :defaults defaults :url []}
+         parts)]
     {:url (str/join url)
      :query-params (dissoc-defaults data defaults)}))
 
@@ -235,28 +234,28 @@
 
 (defn ^:private get-route-score [data {:keys [placeholders defaults matchable-keys]}]
   (reduce
-    (fn [score k]
-      (let [datum (get data k)
-            default (get defaults k)
-            matches-placeholder (and datum (contains? placeholders k))
-            matches-default (and datum default (= datum default))]
-        (cond
-          matches-placeholder (inc score)
-          matches-default (+ score 1.001)
-          :else (* 0.9 score))))
-    0
-    matchable-keys))
+   (fn [score k]
+     (let [datum (get data k)
+           default (get defaults k)
+           matches-placeholder (and datum (contains? placeholders k))
+           matches-default (and datum default (= datum default))]
+       (cond
+         matches-placeholder (inc score)
+         matches-default (+ score 1.001)
+         :else (* 0.9 score))))
+   0
+   matchable-keys))
 
 (defn get-best-route [expanded-routes data]
   (-> (reduce
-        (fn [[best-route best-score] route]
-          (let [score (get-route-score data route)]
-            (if (< best-score score)
-              [route score]
-              [best-route best-score])))
-        [nil 0]
-        expanded-routes)
-    first))
+       (fn [[best-route best-score] route]
+         (let [score (get-route-score data route)]
+           (if (< best-score score)
+             [route score]
+             [best-route best-score])))
+       [nil 0]
+       expanded-routes)
+      first))
 
 (defn sort-by-specificity [routes]
   (sort-by #(- (:specificity %)) routes))
@@ -353,5 +352,5 @@
     ;;
     ;; At the end of the list we put the routes with splats
     (vec (concat (expanded-routes ::exact)
-           (sort-by-specificity (expanded-routes ::pattern))
-           (sort-by-specificity (expanded-routes ::splat))))))
+                 (sort-by-specificity (expanded-routes ::pattern))
+                 (sort-by-specificity (expanded-routes ::splat))))))

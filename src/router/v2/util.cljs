@@ -14,7 +14,7 @@
   ^{:private true
     :doc "Given a key and a value return and encoded key-value pair."}
   encode-pair
-  (fn [[k v]]
+  (fn [[_ v]]
     (cond
       (or (sequential? v) (set? v))
       ::sequential
@@ -37,19 +37,19 @@
 
 (defmethod encode-pair ::sequential [[k v]]
   (let [encoded (map-indexed
-                  (fn [i x]
-                    (let [pair (if (coll? x)
-                                 [(key-index k i) x]
-                                 [(key-index k) x])]
-                      (encode-pair pair)))
-                  v)]
+                 (fn [i x]
+                   (let [pair (if (coll? x)
+                                [(key-index (name-with-ns k) i) x]
+                                [(key-index (name-with-ns k)) x])]
+                     (encode-pair pair)))
+                 v)]
     (string/join \& encoded)))
 
 (defmethod encode-pair ::map [[k v]]
   (let [encoded (map
-                  (fn [[ik iv]]
-                    (encode-pair [(key-index (name-with-ns k) (name-with-ns ik)) iv]))
-                  v)]
+                 (fn [[ik iv]]
+                   (encode-pair [(key-index (name-with-ns k) (name-with-ns ik)) iv]))
+                 v)]
     (string/join \& encoded)))
 
 (defmethod encode-pair :default [[k v]]
@@ -64,8 +64,8 @@
   "Like js/encodeURIComponent excepts ignore slashes."
   [uri]
   (->> (string/split uri #"/")
-    (map encode)
-    (string/join "/")))
+       (map encode)
+       (string/join "/")))
 
 ;;----------------------------------------------------------------------
 ;; Parameter decoding
@@ -80,12 +80,12 @@
   (let [index-re #"\[([^\]]*)\]*" ;; Capture the index value.
         parts (re-seq index-re path)]
     (map
-      (fn [[_ part]]
-        (cond
-          (empty? part) 0
-          (re-matches #"\d+" part) (js/parseInt part)
-          :else part))
-      parts)))
+     (fn [[_ part]]
+       (cond
+         (empty? part) 0
+         (re-matches #"\d+" part) (js/parseInt part)
+         :else part))
+     parts)))
 
 (defn- key-parse
   "Return a key path for a serialized query-string entry.
@@ -110,18 +110,18 @@
   [m path v]
   (let [heads (fn [xs]
                 (map-indexed
-                  (fn [i _]
-                    (take (inc i) xs))
-                  xs))
+                 (fn [i _]
+                   (take (inc i) xs))
+                 xs))
         hs (heads path)
         m (reduce
-            (fn [m h]
-              (if (and (or (number? (last h)))
-                    (not (vector? (get-in m (butlast h)))))
-                (assoc-in m (butlast h) [])
-                m))
-            m
-            hs)]
+           (fn [m h]
+             (if (and (number? (last h))
+                      (not (vector? (get-in m (butlast h)))))
+               (assoc-in m (butlast h) [])
+               m))
+           m
+           hs)]
     (if (zero? (last path))
       (update-in m (butlast path) conj v)
       (assoc-in m path v))))
@@ -131,12 +131,12 @@
   [query-string]
   (let [parts (string/split query-string #"&")
         params (reduce
-                 (fn [m part]
+                (fn [m part]
                    ;; We only want two parts since the part on the right hand side
                    ;; could potentially contain an =.
-                   (let [[k v] (string/split part #"=" 2)]
-                     (assoc-in-query-params m (key-parse (decode k)) (decode v))))
-                 {}
-                 parts)
+                  (let [[k v] (string/split part #"=" 2)]
+                    (assoc-in-query-params m (key-parse (decode k)) (decode v))))
+                {}
+                parts)
         params (keywordize-keys params)]
     params))
