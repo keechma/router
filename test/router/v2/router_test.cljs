@@ -239,6 +239,11 @@
       "a[0][b]=1&a[1][b]=2" {:a [{:b "1"} {:b "2"}]}
       "a[0][b][]=1&a[0][b][]=2&a[1][b][]=?3&a[1][b][]=4" {:a [{:b ["1" "2"]} {:b ["?3" "4"]}]})))
 
+(deftest testing-empty-query-params
+  (let [routes (router/expand-routes [":page"])]
+    (is (= {:data {}} (router/url->map routes "?")))
+    (is (= {:data {}} (router/url->map routes "")))))
+
 (defn mean [coll]
   (let [sum (apply + coll)
         count (count coll)]

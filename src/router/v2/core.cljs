@@ -180,9 +180,10 @@
         process-route)))
 
 (defn ^:private match-path-with-route [route url]
-  (let [matches (first (re-seq (:regex route) url))]
-    (when-not (nil? matches)
-      (zipmap (:placeholders route) (map js/decodeURIComponent (rest matches))))))
+  (when url
+    (let [matches (first (re-seq (:regex route) url))]
+      (when-not (nil? matches)
+        (zipmap (:placeholders route) (map js/decodeURIComponent (rest matches)))))))
 
 (defn match-path [expanded-routes path]
   (reduce
