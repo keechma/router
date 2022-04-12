@@ -1,0 +1,7 @@
+{:builds {:test {:target    :browser-test
+                 :test-dir  "public/test"
+                 :ns-regexp "-test$"
+                 :devtools  {:http-port 8021
+                             :http-root "public/test"}
+                 :dev       {:compiler-options {:closure-defines {'goog.DEBUG true}}}}}
+ :deps   {:aliases [:test]}}

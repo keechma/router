@@ -11,3 +11,8 @@ pom.xml
 .lein-plugins/
 .repl
 .nrepl-port
+.clj-kondo/.cache
+.cpcache
+.shadow-cljs
+/public
+/resources
