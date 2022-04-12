@@ -288,6 +288,7 @@
   "
   [expanded-routes url]
   (let [[path q] (str/split url #"\?")
+        path (or path "")
         query (remove-empty-matches (decode-query-params q))
         matched-path (match-path expanded-routes path)]
     (if matched-path
